@@ -1,0 +1,165 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               Int                @id @default(autoincrement())
+  name             String
+  email            String             @unique
+  password         String
+  role             Role
+  profile          Profile?
+  jobs             Job[]
+  trainings        Training[]
+  applications     Application[]
+  skills           UserSkill[]
+  notifications    Notification[]
+  receivedMessages Message[]          @relation("ReceivedMessages")
+  cv               CV?
+  aiSuggestions    AIRecommendation[]
+  Report           Report[]
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+}
+
+model Profile {
+  id         Int      @id @default(autoincrement())
+  userId     Int      @unique
+  bio        String?
+  location   String?
+  website    String?
+  phone      String?
+  experience String?
+  education  String?
+  user       User     @relation(fields: [userId], references: [id])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Job {
+  id           Int           @id @default(autoincrement())
+  title        String
+  description  String        @db.Text
+  companyId    Int
+  company      User          @relation(fields: [companyId], references: [id])
+  location     String?
+  type         String? // full-time / part-time / internship
+  applications Application[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model Training {
+  id           Int           @id @default(autoincrement())
+  title        String
+  description  String        @db.Text
+  companyId    Int
+  company      User          @relation(fields: [companyId], references: [id])
+  duration     String?
+  applications Application[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model Application {
+  id         Int               @id @default(autoincrement())
+  userId     Int
+  jobId      Int?
+  trainingId Int?
+  status     ApplicationStatus @default(PENDING)
+  user       User              @relation(fields: [userId], references: [id])
+  job        Job?              @relation(fields: [jobId], references: [id])
+  training   Training?         @relation(fields: [trainingId], references: [id])
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model Message {
+  id         Int           @id @default(autoincrement())
+  subject    String?
+  content    String        @db.Text
+  status     MessageStatus @default(PENDING)
+  createdAt  DateTime      @default(now())
+  receiverId Int?
+  receiver   User?         @relation("ReceivedMessages", fields: [receiverId], references: [id])
+}
+
+model Skill {
+  id    Int         @id @default(autoincrement())
+  name  String      @unique
+  users UserSkill[]
+}
+
+model UserSkill {
+  userId  Int
+  skillId Int
+  user    User  @relation(fields: [userId], references: [id])
+  skill   Skill @relation(fields: [skillId], references: [id])
+
+  @@id([userId, skillId])
+}
+
+model CV {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique
+  url       String // رابط السيرة الذاتية المرفوعة
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model AIRecommendation {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  type      String
+  content   String   @db.Text
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model Report {
+  id        Int      @id @default(autoincrement())
+  adminId   Int
+  title     String
+  content   String   @db.Text
+  admin     User     @relation(fields: [adminId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+enum Role {
+  JOB_SEEKER
+  EMPLOYER
+  ADMIN
+}
+
+enum MessageStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+enum ApplicationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
